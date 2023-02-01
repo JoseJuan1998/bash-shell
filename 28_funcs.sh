@@ -5,13 +5,46 @@
 option=0
 
 function installPostgres() {
-  echo "Installing Postgres..."
-  sleep 3
+  echo -e "Verifying Postgres...\n"
+  sleep 1
+  verifyInstall=$(which psql)
+  if [ $? -eq 0 ]; then
+    echo "Alredy installed"
+    sleep 1
+  else
+    read -r -s -p "Type your sudo password: " sudoPass
+    read -r -s -p "Type your psql password: " psqlPass
+
+    echo "$sudoPass" | sudo -S apt update
+    echo "$sudoPass" | sudo -S apt-get -y install postgresql postgresql-contrib
+
+    sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '${psqlPass}'"
+
+    echo "$sudoPass" | sudo -S systemctl enable postgresql.service
+    echo "$sudoPass" | sudo -S systemctl start postgresql.service
+  fi
+
+  read -n1 -s -r -p "Enter to continue..."
 }
 
 function uninstallPostgres() {
-  echo "Uninstalling Postgres..."
-  sleep 3
+  echo -e "Verifying Postgres...\n"
+  sleep 1
+  verifyInstall=$(which psql)
+  if [ $? -ne 0 ]; then
+    echo "Alredy desinstalled"
+    sleep 1
+  else
+    read -r -s -p "Type your sudo password: " sudoPass
+
+    echo "$sudoPass" | sudo -S systemctl stop postgresql.service
+    echo "$sudoPass" | sudo -S pg_dropcluster --stop 12
+    echo "$sudoPass" | sudo -S apt-get -y --purge remove postgresql\*
+    echo "$sudoPass" | sudo -S userdel -r postgres
+    echo "$sudoPass" | sudo -S groupdel -r postgres
+  fi
+
+  read -n1 -s -r -p "Enter to continue..."
 }
 
 function backupPostgres() {
